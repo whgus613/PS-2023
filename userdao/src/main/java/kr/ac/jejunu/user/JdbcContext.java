@@ -10,13 +10,14 @@ public class JdbcContext {
         this.dataSource = dataSource;
     }
 
-    User jdbcContextForFind(StatementStrategy statementStrategy) throws SQLException {
+    User jdbcContextForFind(StatementStrategy statementStrategy){
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
         User user = null;
         try {
             connection = dataSource.getConnection();
+
             preparedStatement = statementStrategy.makeStatement(connection);
             resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
@@ -25,23 +26,27 @@ public class JdbcContext {
                 user.setName(resultSet.getString("name"));
                 user.setPassword(resultSet.getString("password"));
             }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         } finally {
             try {
                 resultSet.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             try {
                 preparedStatement.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             try {
                 connection.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
+
         return user;
     }
 
@@ -52,26 +57,26 @@ public class JdbcContext {
         try {
             connection = dataSource.getConnection();
             preparedStatement = statementStrategy.makeStatement(connection);
-
             preparedStatement.executeUpdate();
             resultSet = preparedStatement.getGeneratedKeys();
             resultSet.next();
             user.setId(resultSet.getLong(1));
         } finally {
+            //자원해지
             try {
                 resultSet.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             try {
                 preparedStatement.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             try {
                 connection.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
     }
@@ -87,12 +92,12 @@ public class JdbcContext {
             try {
                 preparedStatement.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             try {
                 connection.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
     }
@@ -100,8 +105,8 @@ public class JdbcContext {
     void update(String sql, Object[] params) throws SQLException {
         StatementStrategy statementStrategy = connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            for (int i = 0; i < params.length; i++) {
-                preparedStatement.setObject(i + 1, params[i]);
+            for(int i = 0; i< params.length; i++){
+                preparedStatement.setObject(i+1, params[i]);
             }
             return preparedStatement;
         };
@@ -110,8 +115,8 @@ public class JdbcContext {
 
     void insert(User user, String sql, Object[] params) throws SQLException {
         StatementStrategy statementStrategy = connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement (sql, Statement.RETURN_GENERATED_KEYS);
-            for(int i = 0; i< params.length; i++) {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            for(int i = 0; i< params.length; i++){
                 preparedStatement.setObject(i+1, params[i]);
             }
             return preparedStatement;
@@ -119,13 +124,12 @@ public class JdbcContext {
         jdbcContextForInsert(user, statementStrategy);
     }
 
-    User find(String sql, Object[] params) throws SQLException {
+    User find(String sql, Object[] params) {
         StatementStrategy statementStrategy = connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            for (int i = 0; i < params.length; i++) {
-                preparedStatement.setObject(i + 1, params[i]);
+            for(int i = 0; i< params.length; i++){
+                preparedStatement.setObject(i+1, params[i]);
             }
-
             return preparedStatement;
         };
         return jdbcContextForFind(statementStrategy);
